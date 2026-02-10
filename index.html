@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ECG Filter Wizard — Lepu PCECG-500</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #111a2e;
+      --text: #e8eefc;
+      --muted: #b9c5e6;
+      --border: rgba(255,255,255,0.12);
+      --btn: #1b2a4a;
+      --btn2: #23365f;
+      --ok: #b9ffd7;
+      --warn: #ffe8a3;
+      --bad: #ffb9b9;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 30% -10%, #1a2450 0%, transparent 60%),
+                  radial-gradient(900px 600px at 90% 10%, #2b1a4f 0%, transparent 55%),
+                  var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.45;
+    }
+    .wrap { max-width: 940px; margin: 0 auto; padding: 26px 18px 40px; }
+    header {
+      display: flex; gap: 14px; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .title h1 { font-size: 20px; margin: 0 0 6px; font-weight: 700; letter-spacing: 0.2px; }
+    .title p { margin: 0; color: var(--muted); font-size: 13.5px; max-width: 72ch; }
+    .badge {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      white-space: nowrap;
+      height: fit-content;
+    }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 18px 55px rgba(0,0,0,0.35);
+    }
+    .row { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px; }
+    @media (max-width: 860px) { .row { grid-template-columns: 1fr; } }
+    .q {
+      margin: 0 0 10px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .help {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0 0 14px;
+    }
+    .choices { display: grid; gap: 10px; }
+    button.choice {
+      width: 100%;
+      text-align: left;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.05s ease, background 0.12s ease, border-color 0.12s ease;
+    }
+    button.choice:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.20);
+      transform: translateY(-1px);
+    }
+    button.choice:active { transform: translateY(0px); }
+    .choice .small { display: block; margin-top: 4px; color: var(--muted); font-size: 12.5px; }
+    .side {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(0,0,0,0.12);
+      padding: 12px;
+    }
+    .panel h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .kv { display: grid; grid-template-columns: 1fr auto; gap: 8px; font-size: 13.5px; }
+    .kv div { padding: 6px 8px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
+    .kv div.key { color: var(--muted); border-color: rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); }
+    .kv div.val { font-family: var(--mono); }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .btn {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--btn);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 650;
+    }
+    .btn:hover { background: var(--btn2); border-color: rgba(255,255,255,0.20); }
+    .btn.secondary { background: rgba(255,255,255,0.03); color: var(--text); }
+    .btn.secondary:hover { background: rgba(255,255,255,0.06); }
+    .pill {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.03);
+      margin: 4px 6px 0 0;
+    }
+    .result h2 { margin: 0 0 10px; font-size: 18px; }
+    .result p { margin: 8px 0; color: var(--muted); }
+    .hr { height: 1px; background: rgba(255,255,255,0.10); margin: 12px 0; }
+    .list { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 13.5px; }
+    .note {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-size: 12.8px;
+    }
+    .foot { margin-top: 14px; color: var(--muted); font-size: 12.8px; }
+    .foot code { font-family: var(--mono); font-size: 12.2px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>ECG Filter Wizard — Lepu PCECG-500</h1>
+        <p>Seleziona obiettivo e rumore dominante: il wizard propone preset deterministici (ADS / EMG / Lowpass) + fallback a step singoli. Include “Indietro”.</p>
+      </div>
+      <div class="badge">offline · single-file · v0.2</div>
+    </header>
+
+    <div id="app" class="card"></div>
+
+    <div class="foot">
+      Suggerimento pratico: per flutter, se il device lo consente, una striscia a <code>50 mm/s</code> e/o <code>20 mm/mV</code> spesso aiuta la leggibilità delle onde atriali.
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ====== Fixed options from your device ======
+  const OPTIONS = {
+    ADS: ["0.05 Hz", "0.32 Hz", "0.67 Hz"],
+    EMG: ["OFF", "45 Hz", "35 Hz", "25 Hz"],   // ordered: least filtering -> most filtering (assumption consistent with your discussion)
+    LOWPASS: ["OFF", "150 Hz", "100 Hz", "75 Hz"] // ordered: widest bandwidth -> narrowest
+  };
+
+  // ====== Wizard flow ======
+  // We keep a stack of states; each state is { nodeId, answers: {...}, ui: {...} }
+  const stateStack = [];
+  const app = document.getElementById("app");
+
+  function pushState(s) { stateStack.push(s); render(); }
+  function popState() { if (stateStack.length > 1) stateStack.pop(); render(); }
+  function current() { return stateStack[stateStack.length - 1]; }
+
+  function setAnswer(key, value) {
+    const s = current();
+    s.answers[key] = value;
+  }
+
+  // ====== Leaves (recommendations) ======
+  function leafPostProcessingLimits() {
+    return {
+      title: "Limiti su tracciato già acquisito / PDF",
+      preset: { ADS: "—", EMG: "—", LOWPASS: "—" },
+      rationale: [
+        "Sul PCECG-500 la modifica retroattiva dei filtri non è affidabile/visibile in anteprima: per una valutazione diagnostica conviene una nuova acquisizione con preset dedicato.",
+        "È plausibile che la mancata visualizzazione del Lowpass nel PDF 6×2 sia un limite del viewer/layout, non dell’hardware."
+      ],
+      nextSteps: [
+        "Ripeti una registrazione breve con preset ‘Flutter diagnostic’ o ‘PM spike/capture’.",
+        "Annota nel referto interno che l’EMG potrebbe non comparire nel report e che l’ADS può riflettersi nel report/metadata."
+      ],
+      tags: ["device constraint", "workflow"]
+    };
+  }
+
+  function leafFlutterDefault() {
+    return {
+      title: "Preset: Flutter diagnostic (minima distorsione)",
+      preset: { ADS: "0.05 Hz", EMG: "OFF", LOWPASS: "150 Hz" },
+      rationale: [
+        "Ridurre ADS (high-pass) preserva meglio componenti lente e morfologia (utile per onde atriali piccole).",
+        "EMG OFF evita smoothing/attenuazione di dettagli fini.",
+        "Lowpass alto preserva dettaglio e non penalizza gli spike del PM."
+      ],
+      fallback: [
+        "Se baseline ingestibile: ADS → 0.32 Hz (evita 0.67 se non indispensabile).",
+        "Se EMG ingestibile: EMG → 45 Hz, poi 35 Hz, poi 25 Hz (solo se necessario).",
+        "Se rumore HF ingestibile: Lowpass → 100 Hz, poi 75 Hz."
+      ],
+      tags: ["flutter", "diagnostico"]
+    };
+  }
+
+  function leafFlutterBaseline() {
+    const base = leafFlutterDefault();
+    base.title = "Flutter: baseline wander dominante";
+    base.fallback = ["ADS → 0.32 Hz (poi 0.67 Hz solo se indispensabile)."];
+    base.tags = ["flutter", "baseline"];
+    return base;
+  }
+
+  function leafFlutterEMG() {
+    const base = leafFlutterDefault();
+    base.title = "Flutter: rumore muscolare (EMG) dominante";
+    base.fallback = ["EMG → 45 Hz (poi 35 Hz, poi 25 Hz solo se necessario)."];
+    base.tags = ["flutter", "emg"];
+    return base;
+  }
+
+  function leafFlutterHF() {
+    const base = leafFlutterDefault();
+    base.title = "Flutter: rumore alta frequenza dominante";
+    base.fallback = ["Lowpass → 100 Hz (poi 75 Hz)."];
+    base.tags = ["flutter", "hf-noise"];
+    return base;
+  }
+
+  function leafPacingSpikes() {
+    return {
+      title: "Preset: PM spike/capture (massima banda passante)",
+      preset: { ADS: "0.05 Hz", EMG: "OFF", LOWPASS: "OFF" },
+      rationale: [
+        "Per preservare gli spike, minimizza smoothing (EMG) e massimizza banda (Lowpass OFF, se è davvero ‘nessun low-pass’).",
+        "ADS basso mantiene fedeltà della linea di base; aumenta solo se baseline impedisce lettura."
+      ],
+      fallback: [
+        "Se troppo rumore HF: Lowpass → 150 Hz (poi 100 Hz).",
+        "Se baseline ingestibile: ADS → 0.32 Hz."
+      ],
+      tags: ["pacemaker", "spikes"]
+    };
+  }
+
+  function leafMorphologyDefault() {
+    return {
+      title: "Preset: Diagnostico bilanciato (QRS/ST-T)",
+      preset: { ADS: "0.05 Hz", EMG: "OFF", LOWPASS: "150 Hz" },
+      rationale: [
+        "È il profilo a bassa distorsione: utile se ti interessa morfologia e vuoi evitare ‘monitor filters’ troppo aggressivi.",
+        "Aggiungi filtri solo se il rumore impedisce lettura."
+      ],
+      fallback: [
+        "Rumore HF: Lowpass → 100 Hz (poi 75 Hz).",
+        "Rumore EMG: EMG → 45 Hz (poi 35 Hz, poi 25 Hz).",
+        "Baseline wander marcato: ADS → 0.32 Hz (poi 0.67 Hz)."
+      ],
+      tags: ["diagnostico", "morfologia"]
+    };
+  }
+
+  function leafScreeningRobust() {
+    return {
+      title: "Preset: Screening / monitor-like (robustezza)",
+      preset: { ADS: "0.32 Hz", EMG: "35 Hz", LOWPASS: "100 Hz" },
+      rationale: [
+        "Priorità: leggibilità in ambiente ‘sporco’, anche a costo di distorsione fine.",
+        "Utile se l’obiettivo è solo ritmo/frequenza e non dettagli morfologici."
+      ],
+      fallback: [
+        "Se baseline molto instabile: ADS → 0.67 Hz.",
+        "Se rumore HF: Lowpass → 75 Hz.",
+        "Se EMG forte: EMG → 25 Hz."
+      ],
+      tags: ["screening", "robusto"]
+    };
+  }
+
+  // ====== Nodes ======
+  const NODES = {
+    start: {
+      id: "start",
+      q: "Stai scegliendo i filtri prima della registrazione o su un tracciato già acquisito/PDF?",
+      help: "Sul PCECG-500 la modifica retroattiva dei filtri può non essere visibile/affidabile in anteprima: questa scelta cambia il consiglio operativo.",
+      choices: [
+        { label: "Prima della registrazione (realtime)", sub: "Voglio scegliere i filtri per acquisire un tracciato migliore ora", next: "goal", set: ["workflow", "realtime"] },
+        { label: "Su tracciato già acquisito/PDF", sub: "Sto cercando di ‘ripulire’ una registrazione già fatta", leaf: "post" }
+      ]
+    },
+    goal: {
+      id: "goal",
+      q: "Qual è lo scopo primario?",
+      help: "Seleziona cosa vuoi massimizzare: attività atriale (flutter), spike del PM, morfologia, o solo screening.",
+      choices: [
+        { label: "Flutter / onde F (attività atriale fine)", sub: "Voglio distinguere flutter/FA e vedere meglio onde atriali piccole", next: "flutter_noise", set: ["goal", "flutter"] },
+        { label: "Spike di pacing / capture (PM)", sub: "Voglio preservare spike e dettagli di pacing", leaf: "pacing", set: ["goal", "pacing"] },
+        { label: "Morfologia QRS/ST-T (diagnostico)", sub: "Voglio una traccia a bassa distorsione per morfologia generale", leaf: "morph", set: ["goal", "morphology"] },
+        { label: "Screening ritmo/frequenza (monitor-like)", sub: "Priorità: segnale pulito e robusto, non dettaglio fine", leaf: "screen", set: ["goal", "screening"] }
+      ]
+    },
+    flutter_noise: {
+      id: "flutter_noise",
+      q: "Per flutter: quale rumore limita di più la leggibilità?",
+      help: "Scegli l’artefatto dominante. Il preset di base resta ‘diagnostico’ (poco filtrato), con fallback mirati.",
+      choices: [
+        { label: "Baseline wander (deriva lenta)", sub: "Linea di base che ondeggia per respirazione/movimento", leaf: "flutter_baseline", set: ["noise", "baseline"] },
+        { label: "Rumore muscolare (EMG)", sub: "Tremore/contrazione: segnale ‘peloso’ ad alta frequenza", leaf: "flutter_emg", set: ["noise", "emg"] },
+        { label: "Rumore alta frequenza", sub: "Granulosità/instabilità fine non chiaramente muscolare", leaf: "flutter_hf", set: ["noise", "hf"] },
+        { label: "Misto / non so", sub: "Non riesco a identificare un dominante", leaf: "flutter_default", set: ["noise", "mixed"] }
+      ]
+    }
+  };
+
+  const LEAVES = {
+    post: leafPostProcessingLimits,
+    flutter_default: leafFlutterDefault,
+    flutter_baseline: leafFlutterBaseline,
+    flutter_emg: leafFlutterEMG,
+    flutter_hf: leafFlutterHF,
+    pacing: leafPacingSpikes,
+    morph: leafMorphologyDefault,
+    screen: leafScreeningRobust
+  };
+
+  // ====== Rendering ======
+  function renderPanelCurrentAnswers() {
+    const answers = current().answers || {};
+    const entries = Object.entries(answers);
+    if (!entries.length) {
+      return `<div class="panel"><h3>Stato</h3><div class="help">Nessuna scelta ancora.</div></div>`;
+    }
+    const rows = entries.map(([k,v]) => `
+      <div class="kv">
+        <div class="key">${escapeHtml(k)}</div>
+        <div class="val">${escapeHtml(String(v))}</div>
+      </div>
+    `).join("");
+    return `<div class="panel"><h3>Scelte</h3>${rows}</div>`;
+  }
+
+  function renderPanelOptions() {
+    return `
+      <div class="panel">
+        <h3>Valori disponibili (PCECG-500)</h3>
+        <div class="help" style="margin:0 0 10px;">
+          ADS: 0.05 → 0.32 → 0.67 Hz<br/>
+          EMG: 25 → 35 → 45 Hz → OFF<br/>
+          Lowpass: 75 → 100 → 150 Hz → OFF
+        </div>
+        <div>
+          <span class="pill">Principio: minimo filtraggio compatibile con leggibilità</span>
+          <span class="pill">PM: preservare spike → banda larga</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderNode(nodeId) {
+    const node = NODES[nodeId];
+    const htmlChoices = node.choices.map((c, idx) => `
+      <button class="choice" data-idx="${idx}">
+        ${escapeHtml(c.label)}
+        <span class="small">${escapeHtml(c.sub || "")}</span>
+      </button>
+    `).join("");
+
+    app.innerHTML = `
+      <div class="row">
+        <div>
+          <div class="q">${escapeHtml(node.q)}</div>
+          <div class="help">${escapeHtml(node.help || "")}</div>
+          <div class="choices">${htmlChoices}</div>
+          <div class="controls">
+            <button class="btn secondary" id="backBtn" ${stateStack.length > 1 ? "" : "disabled"}>← Indietro</button>
+            <button class="btn secondary" id="resetBtn">Reset</button>
+          </div>
+          <div class="note">
+            Nota: l’ordine EMG/Lowpass qui assume che <b>OFF</b> = nessun filtro e che valori più alti (es. 45 Hz) siano <i>meno aggressivi</i> di 35/25 Hz.
+            Se in pratica noti l’opposto sul tuo device, dimmelo e ribalto automaticamente le regole.
+          </div>
+        </div>
+        <div class="side">
+          ${renderPanelCurrentAnswers()}
+          ${renderPanelOptions()}
+        </div>
+      </div>
+    `;
+
+    // Wire up buttons
+    document.querySelectorAll("button.choice").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.getAttribute("data-idx"));
+        const choice = node.choices[idx];
+
+        // apply setAnswer pairs
+        if (choice.set && choice.set.length === 2) {
+          setAnswer(choice.set[0], choice.set[1]);
+        }
+
+        // go next or leaf
+        if (choice.next) {
+          pushState({ nodeId: choice.next, answers: { ...current().answers } });
+        } else if (choice.leaf) {
+          pushState({ nodeId: "__leaf__", answers: { ...current().answers }, leafId: choice.leaf });
+        }
+      });
+    });
+
+    document.getElementById("backBtn").addEventListener("click", popState);
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      stateStack.length = 0;
+      pushState({ nodeId: "start", answers: {} });
+    });
+  }
+
+    function renderLeaf(leafId) {
+    const leaf = LEAVES[leafId]();
+    const preset = leaf.preset || {};
+    const answers = current().answers || {};
+
+    const presetHtml = `
+      <div class="panel">
+        <h3>Preset suggerito</h3>
+        <div class="kv">
+          <div class="key">ADS (high-pass)</div><div class="val">${escapeHtml(preset.ADS || "—")}</div>
+          <div class="key">EMG</div><div class="val">${escapeHtml(preset.EMG || "—")}</div>
+          <div class="key">Lowpass</div><div class="val">${escapeHtml(preset.LOWPASS || "—")}</div>
+        </div>
+      </div>
+    `;
+
+    const rationaleHtml = (leaf.rationale && leaf.rationale.length)
+      ? `<div class="hr"></div><div class="help" style="margin:0 0 6px;"><b>Razionale</b></div><ul class="list">${leaf.rationale.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ul>`
+      : "";
+
+    const fallbackHtml = (leaf.fallback && leaf.fallback.length)
+      ? `<div class="hr"></div><div class="help" style="margin:0 0 6px;"><b>Fallback (1 step alla volta)</b></div><ul class="list">${leaf.fallback.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ul>`
+      : "";
+
+    const nextStepsHtml = (leaf.nextSteps && leaf.nextSteps.length)
+      ? `<div class="hr"></div><div class="help" style="margin:0 0 6px;"><b>Next step</b></div><ul class="list">${leaf.nextSteps.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ul>`
+      : "";
+
+    const notesPanelHtml = `
+      <div class="panel">
+        <h3>Note cliniche (temporanee)</h3>
+        <div class="help" style="margin:0 0 8px;">Scrivi qui il contesto del caso. Le note non vengono salvate automaticamente: puoi copiarle e incollarle dove vuoi.</div>
+        <textarea id="clinicalNotes" rows="6" style="
+          width:100%;
+          border-radius:12px;
+          border:1px solid rgba(255,255,255,0.14);
+          background: rgba(255,255,255,0.03);
+          color: var(--text);
+          padding: 10px 10px;
+          font-family: var(--sans);
+          resize: vertical;
+          outline: none;
+        " placeholder="Esempio: paziente molto teso → EMG OFF troppo rumore; EMG 45 OK. Flutter waves meglio in II/V1."></textarea>
+
+        <div class="controls" style="margin-top:10px;">
+          <button class="btn" id="copyPresetBtn">Copia preset + razionale + fallback</button>
+          <button class="btn secondary" id="copyAllBtn">Copia tutto (preset + note)</button>
+        </div>
+        <div id="copyStatus" class="help" style="margin:8px 0 0;"></div>
+      </div>
+    `;
+
+    app.innerHTML = `
+      <div class="row">
+        <div class="result">
+          <h2>${escapeHtml(leaf.title)}</h2>
+          ${rationaleHtml}
+          ${fallbackHtml}
+          ${nextStepsHtml}
+
+          <div class="controls">
+            <button class="btn secondary" id="backBtn">← Indietro</button>
+            <button class="btn secondary" id="resetBtn">Reset</button>
+          </div>
+
+          <div class="note">
+            Uso previsto: supporto alla scelta filtri. Non sostituisce giudizio clinico né specifiche del produttore.
+          </div>
+        </div>
+        <div class="side">
+          ${presetHtml}
+          ${renderPanelCurrentAnswers()}
+          ${notesPanelHtml}
+          ${renderPanelOptions()}
+        </div>
+      </div>
+    `;
+
+    document.getElementById("backBtn").addEventListener("click", popState);
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      stateStack.length = 0;
+      pushState({ nodeId: "start", answers: {} });
+    });
+
+    const statusEl = document.getElementById("copyStatus");
+    const notesEl = document.getElementById("clinicalNotes");
+
+    document.getElementById("copyPresetBtn").addEventListener("click", async () => {
+      const text = buildExportText(leaf, answers, ""); // no notes
+      const ok = await copyToClipboard(text);
+      statusEl.textContent = ok ? "Copiato negli appunti ✅" : "Copia non riuscita (browser). Seleziona manualmente e copia.";
+    });
+
+    document.getElementById("copyAllBtn").addEventListener("click", async () => {
+      const notes = notesEl.value || "";
+      const text = buildExportText(leaf, answers, notes);
+      const ok = await copyToClipboard(text);
+      statusEl.textContent = ok ? "Copiato negli appunti (incluso note) ✅" : "Copia non riuscita (browser). Seleziona manualmente e copia.";
+    });
+  }
+
+
+  function render() {
+    const s = current();
+    if (s.nodeId === "__leaf__") return renderLeaf(s.leafId);
+    return renderNode(s.nodeId);
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, (ch) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[ch]));
+  }
+  async function copyToClipboard(text) {
+    // Prefer Clipboard API; fallback for older browsers.
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "absolute";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        return true;
+      } catch (e2) {
+        return false;
+      }
+    }
+  }
+
+  function buildExportText(leaf, answers, clinicalNotes) {
+    const preset = leaf.preset || {};
+    const lines = [];
+
+    lines.push(`ECG Filter Wizard — Lepu PCECG-500`);
+    lines.push(`Risultato: ${leaf.title || ""}`.trim());
+
+    // Preset
+    if (preset.ADS || preset.EMG || preset.LOWPASS) {
+      lines.push(`Preset: ADS ${preset.ADS || "—"} | EMG ${preset.EMG || "—"} | Lowpass ${preset.LOWPASS || "—"}`);
+    }
+
+    // Choices
+    const aEntries = Object.entries(answers || {});
+    if (aEntries.length) {
+      lines.push(`Scelte:`);
+      for (const [k, v] of aEntries) lines.push(`- ${k}: ${v}`);
+    }
+
+    // Rationale / fallback / next steps
+    if (leaf.rationale?.length) {
+      lines.push(`Razionale:`);
+      leaf.rationale.forEach(x => lines.push(`- ${x}`));
+    }
+    if (leaf.fallback?.length) {
+      lines.push(`Fallback (1 step alla volta):`);
+      leaf.fallback.forEach(x => lines.push(`- ${x}`));
+    }
+    if (leaf.nextSteps?.length) {
+      lines.push(`Next step:`);
+      leaf.nextSteps.forEach(x => lines.push(`- ${x}`));
+    }
+
+    // Notes (temporary)
+    if (clinicalNotes && clinicalNotes.trim().length) {
+      lines.push(`Note cliniche (temporanee):`);
+      lines.push(clinicalNotes.trim());
+    }
+
+    return lines.join("\n");
+  }
+
+  // init
+  pushState({ nodeId: "start", answers: {} });
+})();
+</script>
+</body>
+</html>
